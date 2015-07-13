@@ -1,6 +1,7 @@
 package org.mtransit.parser.ca_quebec_rtc_bus;
 
 import java.util.HashSet;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.StringUtils;
@@ -35,7 +36,7 @@ public class QuebecRTCBusAgencyTools extends DefaultAgencyTools {
 
 	@Override
 	public void start(String[] args) {
-		System.out.printf("\nGenerating RTC bus data...\n");
+		System.out.printf("\nGenerating RTC bus data...");
 		long start = System.currentTimeMillis();
 		this.serviceIds = extractUsefulServiceIds(args, this);
 		super.start(args);
@@ -71,9 +72,22 @@ public class QuebecRTCBusAgencyTools extends DefaultAgencyTools {
 		return MAgency.ROUTE_TYPE_BUS;
 	}
 
+	private static final Pattern DIGITS = Pattern.compile("[\\d]+");
+
 	@Override
 	public long getRouteId(GRoute gRoute) {
-		return Long.valueOf(gRoute.route_short_name); // using route short name as route ID
+		if (Utils.isDigitsOnly(gRoute.route_short_name)) {
+			return Long.valueOf(gRoute.route_short_name); // using route short name as route ID
+		}
+		Matcher matcher = DIGITS.matcher(gRoute.route_short_name);
+		matcher.find();
+		long digits = Long.parseLong(matcher.group());
+		if (gRoute.route_short_name.endsWith("a")) {
+			return 10000l + digits;
+		}
+		System.out.printf("\nUnexpected route ID for %s!\n", gRoute);
+		System.exit(-1);
+		return -1l;
 	}
 
 	public static final Pattern NULL = Pattern.compile("([\\- ]*null[ \\-]*)", Pattern.CASE_INSENSITIVE);
@@ -97,6 +111,18 @@ public class QuebecRTCBusAgencyTools extends DefaultAgencyTools {
 	@Override
 	public String getAgencyColor() {
 		return AGENCY_COLOR;
+	}
+
+	private static final String COLOR_008AC9 = "008AC9";
+
+	private static final String RSN_21 = "21";
+
+	@Override
+	public String getRouteColor(GRoute gRoute) {
+		if (RSN_21.equals(gRoute.route_short_name)) {
+			return COLOR_008AC9;
+		}
+		return super.getRouteColor(gRoute);
 	}
 
 	@Override
