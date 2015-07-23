@@ -76,13 +76,13 @@ public class QuebecRTCBusAgencyTools extends DefaultAgencyTools {
 
 	@Override
 	public long getRouteId(GRoute gRoute) {
-		if (Utils.isDigitsOnly(gRoute.route_short_name)) {
-			return Long.valueOf(gRoute.route_short_name); // using route short name as route ID
+		if (Utils.isDigitsOnly(gRoute.getRouteShortName())) {
+			return Long.valueOf(gRoute.getRouteShortName()); // using route short name as route ID
 		}
-		Matcher matcher = DIGITS.matcher(gRoute.route_short_name);
+		Matcher matcher = DIGITS.matcher(gRoute.getRouteShortName());
 		matcher.find();
 		long digits = Long.parseLong(matcher.group());
-		if (gRoute.route_short_name.endsWith("a")) {
+		if (gRoute.getRouteShortName().endsWith("a")) {
 			return 10000l + digits;
 		}
 		System.out.printf("\nUnexpected route ID for %s!\n", gRoute);
@@ -95,9 +95,9 @@ public class QuebecRTCBusAgencyTools extends DefaultAgencyTools {
 
 	@Override
 	public String getRouteLongName(GRoute gRoute) {
-		String routeLongName = gRoute.route_long_name;
+		String routeLongName = gRoute.getRouteLongName();
 		if (StringUtils.isEmpty(routeLongName)) {
-			routeLongName = gRoute.route_desc; // using route description as route long name
+			routeLongName = gRoute.getRouteDesc(); // using route description as route long name
 		}
 		routeLongName = CleanUtils.SAINT.matcher(routeLongName).replaceAll(CleanUtils.SAINT_REPLACEMENT);
 		routeLongName = CleanUtils.CLEAN_PARENTHESE1.matcher(routeLongName).replaceAll(CleanUtils.CLEAN_PARENTHESE1_REPLACEMENT);
@@ -119,7 +119,7 @@ public class QuebecRTCBusAgencyTools extends DefaultAgencyTools {
 
 	@Override
 	public String getRouteColor(GRoute gRoute) {
-		if (RSN_21.equals(gRoute.route_short_name)) {
+		if (RSN_21.equals(gRoute.getRouteShortName())) {
 			return COLOR_008AC9;
 		}
 		return super.getRouteColor(gRoute);
@@ -127,7 +127,7 @@ public class QuebecRTCBusAgencyTools extends DefaultAgencyTools {
 
 	@Override
 	public void setTripHeadsign(MRoute mRoute, MTrip mTrip, GTrip gTrip, GSpec gtfs) {
-		mTrip.setHeadsignString(cleanTripHeadsign(gTrip.trip_headsign), gTrip.direction_id);
+		mTrip.setHeadsignString(cleanTripHeadsign(gTrip.getTripHeadsign()), gTrip.getDirectionId());
 	}
 
 	@Override
@@ -142,6 +142,6 @@ public class QuebecRTCBusAgencyTools extends DefaultAgencyTools {
 
 	@Override
 	public String getStopCode(GStop gStop) {
-		return gStop.stop_id; // using stop ID as stop code
+		return gStop.getStopId(); // using stop ID as stop code
 	}
 }
