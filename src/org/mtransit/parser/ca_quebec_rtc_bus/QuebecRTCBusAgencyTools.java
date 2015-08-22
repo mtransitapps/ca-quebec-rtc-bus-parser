@@ -84,6 +84,12 @@ public class QuebecRTCBusAgencyTools extends DefaultAgencyTools {
 		long digits = Long.parseLong(matcher.group());
 		if (gRoute.getRouteShortName().endsWith("a")) {
 			return 10000l + digits;
+		} else if (gRoute.getRouteShortName().endsWith("b")) {
+			return 20000l + digits;
+		} else if (gRoute.getRouteShortName().endsWith("g")) {
+			return 70000l + digits;
+		} else if (gRoute.getRouteShortName().endsWith("h")) {
+			return 80000l + digits;
 		}
 		System.out.printf("\nUnexpected route ID for %s!\n", gRoute);
 		System.exit(-1);
@@ -132,12 +138,14 @@ public class QuebecRTCBusAgencyTools extends DefaultAgencyTools {
 
 	@Override
 	public String cleanTripHeadsign(String tripHeadsign) {
+		tripHeadsign = CleanUtils.cleanStreetTypesFRCA(tripHeadsign);
 		return CleanUtils.cleanLabelFR(tripHeadsign);
 	}
 
 	@Override
 	public String cleanStopName(String gStopName) {
-		return super.cleanStopNameFR(gStopName);
+		gStopName = CleanUtils.cleanStreetTypesFRCA(gStopName);
+		return CleanUtils.cleanLabelFR(gStopName);
 	}
 
 	@Override
