@@ -77,7 +77,7 @@ public class QuebecRTCBusAgencyTools extends DefaultAgencyTools {
 	@Override
 	public long getRouteId(GRoute gRoute) {
 		if (Utils.isDigitsOnly(gRoute.getRouteShortName())) {
-			return Long.valueOf(gRoute.getRouteShortName()); // using route short name as route ID
+			return Long.parseLong(gRoute.getRouteShortName()); // using route short name as route ID
 		}
 		Matcher matcher = DIGITS.matcher(gRoute.getRouteShortName());
 		matcher.find();
@@ -134,6 +134,24 @@ public class QuebecRTCBusAgencyTools extends DefaultAgencyTools {
 	@Override
 	public void setTripHeadsign(MRoute mRoute, MTrip mTrip, GTrip gTrip, GSpec gtfs) {
 		mTrip.setHeadsignString(cleanTripHeadsign(gTrip.getTripHeadsign()), gTrip.getDirectionId());
+	}
+
+	@Override
+	public boolean mergeHeadsign(MTrip mTrip, MTrip mTripToMerge) {
+		if (mTrip.getRouteId() == 21l) {
+			if (mTrip.getHeadsignId() == 1) {
+				mTrip.setHeadsignString("Ouest", mTrip.getHeadsignId());
+				return true;
+			}
+		} else if (mTrip.getRouteId() == 84l) {
+			if (mTrip.getHeadsignId() == 0) {
+				mTrip.setHeadsignString("Nord", mTrip.getHeadsignId());
+				return true;
+			}
+		}
+		System.out.printf("\nUnexpected trips to merge %s & %s!\n", mTrip, mTripToMerge);
+		System.exit(-1);
+		return false;
 	}
 
 	@Override
