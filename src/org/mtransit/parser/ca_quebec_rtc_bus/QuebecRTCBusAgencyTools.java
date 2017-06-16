@@ -1,6 +1,8 @@
 package org.mtransit.parser.ca_quebec_rtc_bus;
 
+import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -138,14 +140,14 @@ public class QuebecRTCBusAgencyTools extends DefaultAgencyTools {
 
 	@Override
 	public boolean mergeHeadsign(MTrip mTrip, MTrip mTripToMerge) {
-		if (mTrip.getRouteId() == 21l) {
-			if (mTrip.getHeadsignId() == 1) {
-				mTrip.setHeadsignString("Ouest", mTrip.getHeadsignId());
-				return true;
-			}
-		} else if (mTrip.getRouteId() == 84l) {
-			if (mTrip.getHeadsignId() == 0) {
-				mTrip.setHeadsignString("Nord", mTrip.getHeadsignId());
+		List<String> headsignsValues = Arrays.asList(mTrip.getHeadsignValue(), mTripToMerge.getHeadsignValue());
+		if (mTrip.getRouteId() == 11L) {
+			if (Arrays.asList( //
+					"Place D'Youville / Vieux-Québec (Est)", //
+					"Youville / Vieux-Québec (Est)", //
+					"Gare Fluviale (Est)" //
+			).containsAll(headsignsValues)) {
+				mTrip.setHeadsignString("Gare Fluviale (Est)", mTrip.getHeadsignId());
 				return true;
 			}
 		}
