@@ -1,12 +1,11 @@
 package org.mtransit.parser.ca_quebec_rtc_bus;
 
-import java.util.Arrays;
 import java.util.HashSet;
-import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.StringUtils;
+import org.mtransit.parser.CleanUtils;
 import org.mtransit.parser.DefaultAgencyTools;
 import org.mtransit.parser.Utils;
 import org.mtransit.parser.gtfs.data.GCalendar;
@@ -17,7 +16,6 @@ import org.mtransit.parser.gtfs.data.GStop;
 import org.mtransit.parser.gtfs.data.GTrip;
 import org.mtransit.parser.mt.data.MAgency;
 import org.mtransit.parser.mt.data.MRoute;
-import org.mtransit.parser.CleanUtils;
 import org.mtransit.parser.mt.data.MTrip;
 
 // http://rtcquebec.ca/Default.aspx?tabid=192
@@ -82,16 +80,17 @@ public class QuebecRTCBusAgencyTools extends DefaultAgencyTools {
 			return Long.parseLong(gRoute.getRouteShortName()); // using route short name as route ID
 		}
 		Matcher matcher = DIGITS.matcher(gRoute.getRouteShortName());
-		matcher.find();
-		long digits = Long.parseLong(matcher.group());
-		if (gRoute.getRouteShortName().endsWith("a")) {
-			return 10000l + digits;
-		} else if (gRoute.getRouteShortName().endsWith("b")) {
-			return 20000l + digits;
-		} else if (gRoute.getRouteShortName().endsWith("g")) {
-			return 70000l + digits;
-		} else if (gRoute.getRouteShortName().endsWith("h")) {
-			return 80000l + digits;
+		if (matcher.find()) {
+			long digits = Long.parseLong(matcher.group());
+			if (gRoute.getRouteShortName().endsWith("a")) {
+				return 10000l + digits;
+			} else if (gRoute.getRouteShortName().endsWith("b")) {
+				return 20000l + digits;
+			} else if (gRoute.getRouteShortName().endsWith("g")) {
+				return 70000l + digits;
+			} else if (gRoute.getRouteShortName().endsWith("h")) {
+				return 80000l + digits;
+			}
 		}
 		System.out.printf("\nUnexpected route ID for %s!\n", gRoute);
 		System.exit(-1);
@@ -140,24 +139,17 @@ public class QuebecRTCBusAgencyTools extends DefaultAgencyTools {
 
 	@Override
 	public boolean mergeHeadsign(MTrip mTrip, MTrip mTripToMerge) {
-		List<String> headsignsValues = Arrays.asList(mTrip.getHeadsignValue(), mTripToMerge.getHeadsignValue());
-		if (mTrip.getRouteId() == 11L) {
-			if (Arrays.asList( //
-					"Place D'Youville / Vieux-Québec (Est)", //
-					"Youville / Vieux-Québec (Est)", //
-					"Gare Fluviale (Est)" //
-			).containsAll(headsignsValues)) {
-				mTrip.setHeadsignString("Gare Fluviale (Est)", mTrip.getHeadsignId());
-				return true;
-			}
-		}
 		System.out.printf("\nUnexpected trips to merge %s & %s!\n", mTrip, mTripToMerge);
 		System.exit(-1);
 		return false;
 	}
 
+	private static final Pattern REVERSE_DIRECTION = Pattern.compile("(([^\\(]*)\\s+\\((Est|Ouest|Nord|Sud)\\)$)", Pattern.CASE_INSENSITIVE);
+	private static final String REVERSE_DIRECTION_REPLACEMENT = "$3 ($2)";
+
 	@Override
 	public String cleanTripHeadsign(String tripHeadsign) {
+		tripHeadsign = REVERSE_DIRECTION.matcher(tripHeadsign).replaceAll(REVERSE_DIRECTION_REPLACEMENT);
 		tripHeadsign = CleanUtils.removePoints(tripHeadsign);
 		tripHeadsign = CleanUtils.cleanStreetTypesFRCA(tripHeadsign);
 		return CleanUtils.cleanLabelFR(tripHeadsign);
