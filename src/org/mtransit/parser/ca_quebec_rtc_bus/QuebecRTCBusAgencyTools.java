@@ -1,6 +1,8 @@
 package org.mtransit.parser.ca_quebec_rtc_bus;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -14,9 +16,16 @@ import org.mtransit.parser.gtfs.data.GRoute;
 import org.mtransit.parser.gtfs.data.GSpec;
 import org.mtransit.parser.gtfs.data.GStop;
 import org.mtransit.parser.gtfs.data.GTrip;
+import org.mtransit.parser.mt.MGenerator;
 import org.mtransit.parser.mt.data.MAgency;
+import org.mtransit.parser.mt.data.MFrequency;
 import org.mtransit.parser.mt.data.MRoute;
+import org.mtransit.parser.mt.data.MSchedule;
+import org.mtransit.parser.mt.data.MServiceDate;
+import org.mtransit.parser.mt.data.MSpec;
+import org.mtransit.parser.mt.data.MStop;
 import org.mtransit.parser.mt.data.MTrip;
+import org.mtransit.parser.mt.data.MTripStop;
 
 // http://rtcquebec.ca/Default.aspx?tabid=192
 // http://rtcquebec.ca/Portals/0/Admin/DonneesOuvertes/googletransit.zip
@@ -41,6 +50,11 @@ public class QuebecRTCBusAgencyTools extends DefaultAgencyTools {
 		this.serviceIds = extractUsefulServiceIds(args, this);
 		super.start(args);
 		System.out.printf("\nGenerating RTC bus data... DONE in %s.\n", Utils.getPrettyDuration(System.currentTimeMillis() - start));
+	}
+
+	@Override
+	public boolean excludingAll() {
+		return this.serviceIds != null && this.serviceIds.isEmpty();
 	}
 
 	@Override
