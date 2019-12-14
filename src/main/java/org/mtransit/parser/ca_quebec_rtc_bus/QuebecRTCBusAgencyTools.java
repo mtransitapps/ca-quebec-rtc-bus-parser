@@ -27,8 +27,8 @@ import org.mtransit.parser.mt.data.MStop;
 import org.mtransit.parser.mt.data.MTrip;
 import org.mtransit.parser.mt.data.MTripStop;
 
-// https://www.rtcquebec.ca/Default.aspx?tabid=192
-// https://www.rtcquebec.ca/Portals/0/Admin/DonneesOuvertes/googletransit.zip
+// https://www.rtcquebec.ca/donnees-ouvertes
+// https://cdn.rtcquebec.ca/Site_Internet/DonneesOuvertes/googletransit.zip
 public class QuebecRTCBusAgencyTools extends DefaultAgencyTools {
 
 	public static void main(String[] args) {
