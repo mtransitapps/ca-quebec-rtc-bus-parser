@@ -138,31 +138,35 @@ public class QuebecRTCBusAgencyTools extends DefaultAgencyTools {
 		return AGENCY_COLOR;
 	}
 
-	@SuppressWarnings("DuplicateExpressions")
+	private static final int REAL_TIME_API_N = 0;
+	private static final int REAL_TIME_API_S = 1;
+	private static final int REAL_TIME_API_O = 2;
+	private static final int REAL_TIME_API_E = 3;
+
 	@Override
 	public void setTripHeadsign(@NotNull MRoute mRoute, @NotNull MTrip mTrip, @NotNull GTrip gTrip, @NotNull GSpec gtfs) { // DIRECTION ID USED BY REAL-TIME API
 		int directionId;
-		String tripHeadsign;
 		final String tripHeadsign1 = gTrip.getTripHeadsignOrDefault();
 		if (tripHeadsign1.endsWith(" (Nord)")) {
-			tripHeadsign = "N-" + tripHeadsign1.substring(0, tripHeadsign1.length() - 7);
-			directionId = 0;
+			directionId = REAL_TIME_API_N; // DIRECTION ID USED BY REAL-TIME API
 		} else if (tripHeadsign1.endsWith(" (Sud)")) {
-			tripHeadsign = "S-" + tripHeadsign1.substring(0, tripHeadsign1.length() - 6);
-			directionId = 1;
+			directionId = REAL_TIME_API_S; // DIRECTION ID USED BY REAL-TIME API
 		} else if (tripHeadsign1.endsWith(" (Est)")) {
-			tripHeadsign = "E-" + tripHeadsign1.substring(0, tripHeadsign1.length() - 6);
-			directionId = 2;
+			directionId = REAL_TIME_API_O; // DIRECTION ID USED BY REAL-TIME API
 		} else if (tripHeadsign1.endsWith(" (Ouest)")) {
-			tripHeadsign = "O-" + tripHeadsign1.substring(0, tripHeadsign1.length() - 8);
-			directionId = 3;
+			directionId = REAL_TIME_API_E; // DIRECTION ID USED BY REAL-TIME API
 		} else {
 			throw new MTLog.Fatal("Unexpected trip head-sign '%s'!", gTrip);
 		}
 		mTrip.setHeadsignString(
-				cleanTripHeadsign(tripHeadsign),
+				cleanTripHeadsign(gTrip.getTripHeadsignOrDefault()),
 				directionId
 		);
+	}
+
+	@Override
+	public boolean directionFinderEnabled() {
+		return true;
 	}
 
 	@Override
@@ -179,9 +183,22 @@ public class QuebecRTCBusAgencyTools extends DefaultAgencyTools {
 	private static final Pattern UNIVERSITE_LAVAL_ = CleanUtils.cleanWordsFR("U Laval", "U. Laval", "Univ.Laval", "Univ. Laval", "Université Laval");
 	private static final String UNIVERSITE_LAVAL_REPLACEMENT = CleanUtils.cleanWordsReplacement("U Laval");
 
+	private static final Pattern ENDS_WITH_N_ = Pattern.compile("(^(.*)( \\(nord\\))$)", Pattern.CASE_INSENSITIVE);
+	private static final String ENDS_WITH_N_REPLACEMENT = "N-$2";
+	private static final Pattern ENDS_WITH_S_ = Pattern.compile("(^(.*)( \\(sud\\))$)", Pattern.CASE_INSENSITIVE);
+	private static final String ENDS_WITH_S_REPLACEMENT = "S-$2";
+	private static final Pattern ENDS_WITH_E_ = Pattern.compile("(^(.*)( \\(est\\))$)", Pattern.CASE_INSENSITIVE);
+	private static final String ENDS_WITH_E_REPLACEMENT = "E-$2";
+	private static final Pattern ENDS_WITH_O_ = Pattern.compile("(^(.*)( \\(ouest\\))$)", Pattern.CASE_INSENSITIVE);
+	private static final String ENDS_WITH_O_REPLACEMENT = "O-$2";
+
 	@NotNull
 	@Override
-	public String cleanTripHeadsign(@NotNull String tripHeadsign) { // KEEP IN SYNC WITH REAL-TIME PROVIDER
+	public String cleanTripHeadsign(@NotNull String tripHeadsign) {
+		tripHeadsign = ENDS_WITH_N_.matcher(tripHeadsign).replaceAll(ENDS_WITH_N_REPLACEMENT);
+		tripHeadsign = ENDS_WITH_S_.matcher(tripHeadsign).replaceAll(ENDS_WITH_S_REPLACEMENT);
+		tripHeadsign = ENDS_WITH_E_.matcher(tripHeadsign).replaceAll(ENDS_WITH_E_REPLACEMENT);
+		tripHeadsign = ENDS_WITH_O_.matcher(tripHeadsign).replaceAll(ENDS_WITH_O_REPLACEMENT);
 		tripHeadsign = ANCIENNE_.matcher(tripHeadsign).replaceAll(ANCIENNE_REPLACEMENT);
 		tripHeadsign = CEGER_.matcher(tripHeadsign).replaceAll(CEGERP_REPLACEMENT);
 		tripHeadsign = ECOLE_SECONDAIRE_.matcher(tripHeadsign).replaceAll(ECOLE_SECONDAIRE_REPLACEMENT);
