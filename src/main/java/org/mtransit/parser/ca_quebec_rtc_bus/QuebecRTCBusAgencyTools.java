@@ -1,10 +1,11 @@
 package org.mtransit.parser.ca_quebec_rtc_bus;
 
-import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.mtransit.parser.CleanUtils;
 import org.mtransit.parser.DefaultAgencyTools;
 import org.mtransit.parser.MTLog;
+import org.mtransit.parser.StringUtils;
 import org.mtransit.parser.Utils;
 import org.mtransit.parser.gtfs.data.GCalendar;
 import org.mtransit.parser.gtfs.data.GCalendarDate;
@@ -25,7 +26,7 @@ import java.util.regex.Pattern;
 // https://cdn.rtcquebec.ca/Site_Internet/DonneesOuvertes/googletransit.zip
 public class QuebecRTCBusAgencyTools extends DefaultAgencyTools {
 
-	public static void main(String[] args) {
+	public static void main(@Nullable String[] args) {
 		if (args == null || args.length == 0) {
 			args = new String[3];
 			args[0] = "input/gtfs.zip";
@@ -35,46 +36,48 @@ public class QuebecRTCBusAgencyTools extends DefaultAgencyTools {
 		new QuebecRTCBusAgencyTools().start(args);
 	}
 
-	private HashSet<String> serviceIds;
+	@Nullable
+	private HashSet<Integer> serviceIdInts;
 
 	@Override
-	public void start(String[] args) {
+	public void start(@NotNull String[] args) {
 		MTLog.log("Generating RTC bus data...");
 		long start = System.currentTimeMillis();
-		this.serviceIds = extractUsefulServiceIds(args, this, true);
+		this.serviceIdInts = extractUsefulServiceIdInts(args, this, true);
 		super.start(args);
 		MTLog.log("Generating RTC bus data... DONE in %s.", Utils.getPrettyDuration(System.currentTimeMillis() - start));
 	}
 
 	@Override
 	public boolean excludingAll() {
-		return this.serviceIds != null && this.serviceIds.isEmpty();
+		return this.serviceIdInts != null && this.serviceIdInts.isEmpty();
 	}
 
 	@Override
-	public boolean excludeCalendar(GCalendar gCalendar) {
-		if (this.serviceIds != null) {
-			return excludeUselessCalendar(gCalendar, this.serviceIds);
+	public boolean excludeCalendar(@NotNull GCalendar gCalendar) {
+		if (this.serviceIdInts != null) {
+			return excludeUselessCalendarInt(gCalendar, this.serviceIdInts);
 		}
 		return super.excludeCalendar(gCalendar);
 	}
 
 	@Override
-	public boolean excludeCalendarDate(GCalendarDate gCalendarDates) {
-		if (this.serviceIds != null) {
-			return excludeUselessCalendarDate(gCalendarDates, this.serviceIds);
+	public boolean excludeCalendarDate(@NotNull GCalendarDate gCalendarDates) {
+		if (this.serviceIdInts != null) {
+			return excludeUselessCalendarDateInt(gCalendarDates, this.serviceIdInts);
 		}
 		return super.excludeCalendarDate(gCalendarDates);
 	}
 
 	@Override
-	public boolean excludeTrip(GTrip gTrip) {
-		if (this.serviceIds != null) {
-			return excludeUselessTrip(gTrip, this.serviceIds);
+	public boolean excludeTrip(@NotNull GTrip gTrip) {
+		if (this.serviceIdInts != null) {
+			return excludeUselessTripInt(gTrip, this.serviceIdInts);
 		}
 		return super.excludeTrip(gTrip);
 	}
 
+	@NotNull
 	@Override
 	public Integer getAgencyRouteType() {
 		return MAgency.ROUTE_TYPE_BUS;
@@ -83,7 +86,7 @@ public class QuebecRTCBusAgencyTools extends DefaultAgencyTools {
 	private static final Pattern DIGITS = Pattern.compile("[\\d]+");
 
 	@Override
-	public long getRouteId(GRoute gRoute) {
+	public long getRouteId(@NotNull GRoute gRoute) {
 		if (Utils.isDigitsOnly(gRoute.getRouteShortName())) {
 			return Long.parseLong(gRoute.getRouteShortName()); // using route short name as route ID
 		}
@@ -100,12 +103,12 @@ public class QuebecRTCBusAgencyTools extends DefaultAgencyTools {
 				return 80_000L + digits;
 			}
 		}
-		MTLog.logFatal("Unexpected route ID for %s!", gRoute);
-		return -1L;
+		throw new MTLog.Fatal("Unexpected route ID for %s!", gRoute);
 	}
 
+	@Nullable
 	@Override
-	public String getRouteShortName(GRoute gRoute) {
+	public String getRouteShortName(@NotNull GRoute gRoute) {
 		String routeShortName = gRoute.getRouteShortName();
 		return routeShortName.toUpperCase(Locale.FRENCH); // USED BY REAL-TIME API
 	}
@@ -113,50 +116,48 @@ public class QuebecRTCBusAgencyTools extends DefaultAgencyTools {
 	private static final Pattern NULL = Pattern.compile("([\\- ]*null[ \\-]*)", Pattern.CASE_INSENSITIVE);
 	private static final String NULL_REPLACEMENT = "";
 
+	@NotNull
 	@Override
-	public String getRouteLongName(GRoute gRoute) {
-		String routeLongName = gRoute.getRouteLongName();
+	public String getRouteLongName(@NotNull GRoute gRoute) {
+		String routeLongName = gRoute.getRouteLongNameOrDefault();
 		if (StringUtils.isEmpty(routeLongName)) {
-			routeLongName = gRoute.getRouteDesc(); // using route description as route long name
+			routeLongName = gRoute.getRouteDescOrDefault(); // using route description as route long name
 		}
 		routeLongName = CleanUtils.SAINT.matcher(routeLongName).replaceAll(CleanUtils.SAINT_REPLACEMENT);
-		routeLongName = CleanUtils.CLEAN_PARENTHESE1.matcher(routeLongName).replaceAll(CleanUtils.CLEAN_PARENTHESE1_REPLACEMENT);
-		routeLongName = CleanUtils.CLEAN_PARENTHESE2.matcher(routeLongName).replaceAll(CleanUtils.CLEAN_PARENTHESE2_REPLACEMENT);
+		routeLongName = CleanUtils.CLEAN_PARENTHESIS1.matcher(routeLongName).replaceAll(CleanUtils.CLEAN_PARENTHESIS1_REPLACEMENT);
+		routeLongName = CleanUtils.CLEAN_PARENTHESIS2.matcher(routeLongName).replaceAll(CleanUtils.CLEAN_PARENTHESIS2_REPLACEMENT);
 		routeLongName = NULL.matcher(routeLongName).replaceAll(NULL_REPLACEMENT);
 		return CleanUtils.cleanLabel(routeLongName);
 	}
 
 	private static final String AGENCY_COLOR = "A3C614";
 
+	@NotNull
 	@Override
 	public String getAgencyColor() {
 		return AGENCY_COLOR;
 	}
 
+	@SuppressWarnings("DuplicateExpressions")
 	@Override
-	public String getRouteColor(GRoute gRoute) {
-		return super.getRouteColor(gRoute);
-	}
-
-	@Override
-	public void setTripHeadsign(MRoute mRoute, MTrip mTrip, GTrip gTrip, GSpec gtfs) { // DIRECTION ID USED BY REAL-TIME API
+	public void setTripHeadsign(@NotNull MRoute mRoute, @NotNull MTrip mTrip, @NotNull GTrip gTrip, @NotNull GSpec gtfs) { // DIRECTION ID USED BY REAL-TIME API
 		int directionId;
 		String tripHeadsign;
-		if (gTrip.getTripHeadsign().endsWith(" (Nord)")) {
-			tripHeadsign = "N-" + gTrip.getTripHeadsign().substring(0, gTrip.getTripHeadsign().length() - 7);
+		final String tripHeadsign1 = gTrip.getTripHeadsignOrDefault();
+		if (tripHeadsign1.endsWith(" (Nord)")) {
+			tripHeadsign = "N-" + tripHeadsign1.substring(0, tripHeadsign1.length() - 7);
 			directionId = 0;
-		} else if (gTrip.getTripHeadsign().endsWith(" (Sud)")) {
-			tripHeadsign = "S-" + gTrip.getTripHeadsign().substring(0, gTrip.getTripHeadsign().length() - 6);
+		} else if (tripHeadsign1.endsWith(" (Sud)")) {
+			tripHeadsign = "S-" + tripHeadsign1.substring(0, tripHeadsign1.length() - 6);
 			directionId = 1;
-		} else if (gTrip.getTripHeadsign().endsWith(" (Est)")) {
-			tripHeadsign = "E-" + gTrip.getTripHeadsign().substring(0, gTrip.getTripHeadsign().length() - 6);
+		} else if (tripHeadsign1.endsWith(" (Est)")) {
+			tripHeadsign = "E-" + tripHeadsign1.substring(0, tripHeadsign1.length() - 6);
 			directionId = 2;
-		} else if (gTrip.getTripHeadsign().endsWith(" (Ouest)")) {
-			tripHeadsign = "O-" + gTrip.getTripHeadsign().substring(0, gTrip.getTripHeadsign().length() - 8);
+		} else if (tripHeadsign1.endsWith(" (Ouest)")) {
+			tripHeadsign = "O-" + tripHeadsign1.substring(0, tripHeadsign1.length() - 8);
 			directionId = 3;
 		} else {
-			MTLog.logFatal("Unexpected trip head-sign '%s'!", gTrip);
-			return;
+			throw new MTLog.Fatal("Unexpected trip head-sign '%s'!", gTrip);
 		}
 		mTrip.setHeadsignString(
 				cleanTripHeadsign(tripHeadsign),
@@ -165,52 +166,43 @@ public class QuebecRTCBusAgencyTools extends DefaultAgencyTools {
 	}
 
 	@Override
-	public boolean mergeHeadsign(MTrip mTrip, MTrip mTripToMerge) {
-		MTLog.logFatal("Unexpected trips to merge %s & %s!", mTrip, mTripToMerge);
-		return false;
+	public boolean mergeHeadsign(@NotNull MTrip mTrip, @NotNull MTrip mTripToMerge) {
+		throw new MTLog.Fatal("Unexpected trips to merge %s & %s!", mTrip, mTripToMerge);
 	}
 
-	private static final Pattern ANCIENNE_ = CleanUtils.cleanWords("l'ancienne", "ancienne");
+	private static final Pattern ANCIENNE_ = CleanUtils.cleanWordsFR("l'ancienne", "ancienne");
 	private static final String ANCIENNE_REPLACEMENT = CleanUtils.cleanWordsReplacement("Anc");
-	private static final Pattern CEGER_ = CleanUtils.cleanWords("cégep", "cegep");
+	private static final Pattern CEGER_ = CleanUtils.cleanWordsFR("cégep", "cegep");
 	private static final String CEGERP_REPLACEMENT = CleanUtils.cleanWordsReplacement("Cgp");
-	private static final Pattern CENTRE_ = CleanUtils.cleanWords("centre", "center");
-	private static final String CENTRE_REPLACEMENT = CleanUtils.cleanWordsReplacement("Ctr");
-	private static final Pattern ECOLE_SECONDAIRE_ = CleanUtils.cleanWords("École Secondaire", "École Sec");
+	private static final Pattern ECOLE_SECONDAIRE_ = CleanUtils.cleanWordsFR("École Secondaire", "École Sec");
 	private static final String ECOLE_SECONDAIRE_REPLACEMENT = CleanUtils.cleanWordsReplacement("ES");
-	private static final Pattern PLACE_ = CleanUtils.cleanWords("place");
-	private static final String PLACE_REPLACEMENT = CleanUtils.cleanWordsReplacement("Pl");
-	private static final Pattern POINTE_ = CleanUtils.cleanWords("pointe");
-	private static final String POINTE_REPLACEMENT = CleanUtils.cleanWordsReplacement("Pte");
-	private static final Pattern TERMINUS_ = CleanUtils.cleanWords("terminus");
-	private static final String TERMINUS_REPLACEMENT = CleanUtils.cleanWordsReplacement("Term");
-	private static final Pattern UNIVERSITE_LAVAL_ = CleanUtils.cleanWords("U Laval", "U. Laval", "Univ.Laval", "Univ. Laval", "Université Laval");
+	private static final Pattern UNIVERSITE_LAVAL_ = CleanUtils.cleanWordsFR("U Laval", "U. Laval", "Univ.Laval", "Univ. Laval", "Université Laval");
 	private static final String UNIVERSITE_LAVAL_REPLACEMENT = CleanUtils.cleanWordsReplacement("U Laval");
 
+	@NotNull
 	@Override
-	public String cleanTripHeadsign(String tripHeadsign) { // KEEP IN SYNC WITH REAL-TIME PROVIDER
+	public String cleanTripHeadsign(@NotNull String tripHeadsign) { // KEEP IN SYNC WITH REAL-TIME PROVIDER
 		tripHeadsign = ANCIENNE_.matcher(tripHeadsign).replaceAll(ANCIENNE_REPLACEMENT);
 		tripHeadsign = CEGER_.matcher(tripHeadsign).replaceAll(CEGERP_REPLACEMENT);
-		tripHeadsign = CENTRE_.matcher(tripHeadsign).replaceAll(CENTRE_REPLACEMENT);
 		tripHeadsign = ECOLE_SECONDAIRE_.matcher(tripHeadsign).replaceAll(ECOLE_SECONDAIRE_REPLACEMENT);
-		tripHeadsign = PLACE_.matcher(tripHeadsign).replaceAll(PLACE_REPLACEMENT);
-		tripHeadsign = POINTE_.matcher(tripHeadsign).replaceAll(POINTE_REPLACEMENT);
-		tripHeadsign = TERMINUS_.matcher(tripHeadsign).replaceAll(TERMINUS_REPLACEMENT);
 		tripHeadsign = UNIVERSITE_LAVAL_.matcher(tripHeadsign).replaceAll(UNIVERSITE_LAVAL_REPLACEMENT);
-		tripHeadsign = CleanUtils.removePoints(tripHeadsign);
+		tripHeadsign = CleanUtils.cleanBounds(Locale.FRENCH, tripHeadsign);
 		tripHeadsign = CleanUtils.cleanStreetTypesFRCA(tripHeadsign);
 		return CleanUtils.cleanLabelFR(tripHeadsign);
 	}
 
+	@NotNull
 	@Override
-	public String cleanStopName(String gStopName) {
+	public String cleanStopName(@NotNull String gStopName) {
+		gStopName = CleanUtils.cleanBounds(Locale.FRENCH, gStopName);
 		gStopName = CleanUtils.cleanStreetTypesFRCA(gStopName);
 		return CleanUtils.cleanLabelFR(gStopName);
 	}
 
 	@NotNull
 	@Override
-	public String getStopCode(GStop gStop) {
+	public String getStopCode(@NotNull GStop gStop) {
+		//noinspection deprecation
 		return gStop.getStopId(); // using stop ID as stop code
 	}
 }
