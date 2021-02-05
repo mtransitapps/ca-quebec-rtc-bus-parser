@@ -2,10 +2,12 @@ package org.mtransit.parser.ca_quebec_rtc_bus;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.mtransit.parser.CleanUtils;
+import org.mtransit.commons.CharUtils;
+import org.mtransit.commons.CleanUtils;
+import org.mtransit.commons.StringUtils;
+import org.mtransit.commons.provider.RTCQuebecProviderCommons;
 import org.mtransit.parser.DefaultAgencyTools;
 import org.mtransit.parser.MTLog;
-import org.mtransit.parser.StringUtils;
 import org.mtransit.parser.Utils;
 import org.mtransit.parser.gtfs.data.GCalendar;
 import org.mtransit.parser.gtfs.data.GCalendarDate;
@@ -87,7 +89,7 @@ public class QuebecRTCBusAgencyTools extends DefaultAgencyTools {
 
 	@Override
 	public long getRouteId(@NotNull GRoute gRoute) {
-		if (Utils.isDigitsOnly(gRoute.getRouteShortName())) {
+		if (CharUtils.isDigitsOnly(gRoute.getRouteShortName())) {
 			return Long.parseLong(gRoute.getRouteShortName()); // using route short name as route ID
 		}
 		Matcher matcher = DIGITS.matcher(gRoute.getRouteShortName());
@@ -110,7 +112,7 @@ public class QuebecRTCBusAgencyTools extends DefaultAgencyTools {
 	@Override
 	public String getRouteShortName(@NotNull GRoute gRoute) {
 		String routeShortName = gRoute.getRouteShortName();
-		return routeShortName.toUpperCase(Locale.FRENCH); // USED BY REAL-TIME API
+		return routeShortName.toUpperCase(Locale.FRENCH); // USED BY RTC QUEBEC REAL-TIME API
 	}
 
 	private static final Pattern NULL = Pattern.compile("([\\- ]*null[ \\-]*)", Pattern.CASE_INSENSITIVE);
@@ -138,23 +140,18 @@ public class QuebecRTCBusAgencyTools extends DefaultAgencyTools {
 		return AGENCY_COLOR;
 	}
 
-	private static final int REAL_TIME_API_N = 0;
-	private static final int REAL_TIME_API_S = 1;
-	private static final int REAL_TIME_API_O = 2;
-	private static final int REAL_TIME_API_E = 3;
-
 	@Override
 	public void setTripHeadsign(@NotNull MRoute mRoute, @NotNull MTrip mTrip, @NotNull GTrip gTrip, @NotNull GSpec gtfs) { // DIRECTION ID USED BY REAL-TIME API
 		int directionId;
 		final String tripHeadsign1 = gTrip.getTripHeadsignOrDefault();
 		if (tripHeadsign1.endsWith(" (Nord)")) {
-			directionId = REAL_TIME_API_N; // DIRECTION ID USED BY REAL-TIME API
+			directionId = RTCQuebecProviderCommons.REAL_TIME_API_N; // DIRECTION ID USED BY REAL-TIME API
 		} else if (tripHeadsign1.endsWith(" (Sud)")) {
-			directionId = REAL_TIME_API_S; // DIRECTION ID USED BY REAL-TIME API
+			directionId = RTCQuebecProviderCommons.REAL_TIME_API_S; // DIRECTION ID USED BY REAL-TIME API
 		} else if (tripHeadsign1.endsWith(" (Est)")) {
-			directionId = REAL_TIME_API_O; // DIRECTION ID USED BY REAL-TIME API
+			directionId = RTCQuebecProviderCommons.REAL_TIME_API_O; // DIRECTION ID USED BY REAL-TIME API
 		} else if (tripHeadsign1.endsWith(" (Ouest)")) {
-			directionId = REAL_TIME_API_E; // DIRECTION ID USED BY REAL-TIME API
+			directionId = RTCQuebecProviderCommons.REAL_TIME_API_E; // DIRECTION ID USED BY REAL-TIME API
 		} else {
 			throw new MTLog.Fatal("Unexpected trip head-sign '%s'!", gTrip);
 		}
@@ -174,15 +171,6 @@ public class QuebecRTCBusAgencyTools extends DefaultAgencyTools {
 		throw new MTLog.Fatal("Unexpected trips to merge %s & %s!", mTrip, mTripToMerge);
 	}
 
-	private static final Pattern ANCIENNE_ = CleanUtils.cleanWordsFR("l'ancienne", "ancienne");
-	private static final String ANCIENNE_REPLACEMENT = CleanUtils.cleanWordsReplacement("Anc");
-	private static final Pattern CEGER_ = CleanUtils.cleanWordsFR("cégep", "cegep");
-	private static final String CEGERP_REPLACEMENT = CleanUtils.cleanWordsReplacement("Cgp");
-	private static final Pattern ECOLE_SECONDAIRE_ = CleanUtils.cleanWordsFR("École Secondaire", "École Sec");
-	private static final String ECOLE_SECONDAIRE_REPLACEMENT = CleanUtils.cleanWordsReplacement("ES");
-	private static final Pattern UNIVERSITE_LAVAL_ = CleanUtils.cleanWordsFR("U Laval", "U. Laval", "Univ.Laval", "Univ. Laval", "Université Laval");
-	private static final String UNIVERSITE_LAVAL_REPLACEMENT = CleanUtils.cleanWordsReplacement("U Laval");
-
 	private static final Pattern ENDS_WITH_N_ = Pattern.compile("(^(.*)( \\(nord\\))$)", Pattern.CASE_INSENSITIVE);
 	private static final String ENDS_WITH_N_REPLACEMENT = "N-$2";
 	private static final Pattern ENDS_WITH_S_ = Pattern.compile("(^(.*)( \\(sud\\))$)", Pattern.CASE_INSENSITIVE);
@@ -199,13 +187,7 @@ public class QuebecRTCBusAgencyTools extends DefaultAgencyTools {
 		tripHeadsign = ENDS_WITH_S_.matcher(tripHeadsign).replaceAll(ENDS_WITH_S_REPLACEMENT);
 		tripHeadsign = ENDS_WITH_E_.matcher(tripHeadsign).replaceAll(ENDS_WITH_E_REPLACEMENT);
 		tripHeadsign = ENDS_WITH_O_.matcher(tripHeadsign).replaceAll(ENDS_WITH_O_REPLACEMENT);
-		tripHeadsign = ANCIENNE_.matcher(tripHeadsign).replaceAll(ANCIENNE_REPLACEMENT);
-		tripHeadsign = CEGER_.matcher(tripHeadsign).replaceAll(CEGERP_REPLACEMENT);
-		tripHeadsign = ECOLE_SECONDAIRE_.matcher(tripHeadsign).replaceAll(ECOLE_SECONDAIRE_REPLACEMENT);
-		tripHeadsign = UNIVERSITE_LAVAL_.matcher(tripHeadsign).replaceAll(UNIVERSITE_LAVAL_REPLACEMENT);
-		tripHeadsign = CleanUtils.cleanBounds(Locale.FRENCH, tripHeadsign);
-		tripHeadsign = CleanUtils.cleanStreetTypesFRCA(tripHeadsign);
-		return CleanUtils.cleanLabelFR(tripHeadsign);
+		return RTCQuebecProviderCommons.cleanTripHeadsign(tripHeadsign);
 	}
 
 	@NotNull
@@ -218,8 +200,11 @@ public class QuebecRTCBusAgencyTools extends DefaultAgencyTools {
 
 	@NotNull
 	@Override
-	public String getStopCode(@NotNull GStop gStop) {
-		//noinspection deprecation
-		return gStop.getStopId(); // using stop ID as stop code
+	public String getStopCode(@NotNull GStop gStop) { // USED BY RTC QUEBEC REAL-TIME API
+		if (StringUtils.isEmpty(gStop.getStopCode())) {
+			//noinspection deprecation
+			return gStop.getStopId(); // using stop ID as stop code
+		}
+		return super.getStopCode(gStop);
 	}
 }
