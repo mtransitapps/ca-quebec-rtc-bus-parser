@@ -149,9 +149,9 @@ public class QuebecRTCBusAgencyTools extends DefaultAgencyTools {
 		} else if (tripHeadsign1.endsWith(" (Sud)")) {
 			directionId = RTCQuebecProviderCommons.REAL_TIME_API_S; // DIRECTION ID USED BY REAL-TIME API
 		} else if (tripHeadsign1.endsWith(" (Est)")) {
-			directionId = RTCQuebecProviderCommons.REAL_TIME_API_O; // DIRECTION ID USED BY REAL-TIME API
-		} else if (tripHeadsign1.endsWith(" (Ouest)")) {
 			directionId = RTCQuebecProviderCommons.REAL_TIME_API_E; // DIRECTION ID USED BY REAL-TIME API
+		} else if (tripHeadsign1.endsWith(" (Ouest)")) {
+			directionId = RTCQuebecProviderCommons.REAL_TIME_API_O; // DIRECTION ID USED BY REAL-TIME API
 		} else {
 			throw new MTLog.Fatal("Unexpected trip head-sign '%s'!", gTrip);
 		}
