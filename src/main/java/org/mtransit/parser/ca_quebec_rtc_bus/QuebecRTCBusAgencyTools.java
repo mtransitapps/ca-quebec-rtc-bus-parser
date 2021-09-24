@@ -2,16 +2,11 @@ package org.mtransit.parser.ca_quebec_rtc_bus;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.mtransit.commons.CharUtils;
 import org.mtransit.commons.CleanUtils;
 import org.mtransit.commons.StringUtils;
 import org.mtransit.commons.provider.RTCQuebecProviderCommons;
 import org.mtransit.parser.DefaultAgencyTools;
 import org.mtransit.parser.MTLog;
-import org.mtransit.parser.Utils;
-import org.mtransit.parser.gtfs.data.GCalendar;
-import org.mtransit.parser.gtfs.data.GCalendarDate;
-import org.mtransit.parser.gtfs.data.GRoute;
 import org.mtransit.parser.gtfs.data.GSpec;
 import org.mtransit.parser.gtfs.data.GStop;
 import org.mtransit.parser.gtfs.data.GTrip;
@@ -19,64 +14,33 @@ import org.mtransit.parser.mt.data.MAgency;
 import org.mtransit.parser.mt.data.MRoute;
 import org.mtransit.parser.mt.data.MTrip;
 
-import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 // https://www.rtcquebec.ca/donnees-ouvertes
 // https://cdn.rtcquebec.ca/Site_Internet/DonneesOuvertes/googletransit.zip
 public class QuebecRTCBusAgencyTools extends DefaultAgencyTools {
 
-	public static void main(@Nullable String[] args) {
-		if (args == null || args.length == 0) {
-			args = new String[3];
-			args[0] = "input/gtfs.zip";
-			args[1] = "../../mtransitapps/ca-quebec-rtc-bus-android/res/raw/";
-			args[2] = ""; // files-prefix
-		}
+	public static void main(@NotNull String[] args) {
 		new QuebecRTCBusAgencyTools().start(args);
 	}
 
 	@Nullable
-	private HashSet<Integer> serviceIdInts;
-
 	@Override
-	public void start(@NotNull String[] args) {
-		MTLog.log("Generating RTC bus data...");
-		long start = System.currentTimeMillis();
-		this.serviceIdInts = extractUsefulServiceIdInts(args, this, true);
-		super.start(args);
-		MTLog.log("Generating RTC bus data... DONE in %s.", Utils.getPrettyDuration(System.currentTimeMillis() - start));
+	public List<Locale> getSupportedLanguages() {
+		return LANG_FR;
 	}
 
 	@Override
-	public boolean excludingAll() {
-		return this.serviceIdInts != null && this.serviceIdInts.isEmpty();
+	public boolean defaultExcludeEnabled() {
+		return true;
 	}
 
+	@NotNull
 	@Override
-	public boolean excludeCalendar(@NotNull GCalendar gCalendar) {
-		if (this.serviceIdInts != null) {
-			return excludeUselessCalendarInt(gCalendar, this.serviceIdInts);
-		}
-		return super.excludeCalendar(gCalendar);
-	}
-
-	@Override
-	public boolean excludeCalendarDate(@NotNull GCalendarDate gCalendarDates) {
-		if (this.serviceIdInts != null) {
-			return excludeUselessCalendarDateInt(gCalendarDates, this.serviceIdInts);
-		}
-		return super.excludeCalendarDate(gCalendarDates);
-	}
-
-	@Override
-	public boolean excludeTrip(@NotNull GTrip gTrip) {
-		if (this.serviceIdInts != null) {
-			return excludeUselessTripInt(gTrip, this.serviceIdInts);
-		}
-		return super.excludeTrip(gTrip);
+	public String getAgencyName() {
+		return "RTC";
 	}
 
 	@NotNull
@@ -85,46 +49,38 @@ public class QuebecRTCBusAgencyTools extends DefaultAgencyTools {
 		return MAgency.ROUTE_TYPE_BUS;
 	}
 
-	private static final Pattern DIGITS = Pattern.compile("[\\d]+");
-
 	@Override
-	public long getRouteId(@NotNull GRoute gRoute) {
-		if (CharUtils.isDigitsOnly(gRoute.getRouteShortName())) {
-			return Long.parseLong(gRoute.getRouteShortName()); // using route short name as route ID
-		}
-		Matcher matcher = DIGITS.matcher(gRoute.getRouteShortName());
-		if (matcher.find()) {
-			long digits = Long.parseLong(matcher.group());
-			if (gRoute.getRouteShortName().endsWith("a")) {
-				return 10_000L + digits;
-			} else if (gRoute.getRouteShortName().endsWith("b")) {
-				return 20_000L + digits;
-			} else if (gRoute.getRouteShortName().endsWith("g")) {
-				return 70_000L + digits;
-			} else if (gRoute.getRouteShortName().endsWith("h")) {
-				return 80_000L + digits;
-			}
-		}
-		throw new MTLog.Fatal("Unexpected route ID for %s!", gRoute);
+	public boolean defaultRouteIdEnabled() {
+		return true;
 	}
 
-	@Nullable
 	@Override
-	public String getRouteShortName(@NotNull GRoute gRoute) {
-		String routeShortName = gRoute.getRouteShortName();
-		return routeShortName.toUpperCase(Locale.FRENCH); // USED BY RTC QUEBEC REAL-TIME API
+	public boolean useRouteShortNameForRouteId() {
+		return true;
+	}
+
+	@NotNull
+	@Override
+	public String cleanRouteShortName(@NotNull String routeShortName) {
+		return routeShortName.toUpperCase(getFirstLanguageNN()); // USED BY RTC QUEBEC REAL-TIME API
 	}
 
 	private static final Pattern NULL = Pattern.compile("([\\- ]*null[ \\-]*)", Pattern.CASE_INSENSITIVE);
 	private static final String NULL_REPLACEMENT = "";
 
+	@Override
+	public boolean defaultRouteLongNameEnabled() {
+		return true;
+	}
+
+	@Override
+	public boolean tryRouteDescForMissingLongName() {
+		return true; // route long name NOT provided
+	}
+
 	@NotNull
 	@Override
-	public String getRouteLongName(@NotNull GRoute gRoute) {
-		String routeLongName = gRoute.getRouteLongNameOrDefault();
-		if (StringUtils.isEmpty(routeLongName)) {
-			routeLongName = gRoute.getRouteDescOrDefault(); // using route description as route long name
-		}
+	public String cleanRouteLongName(@NotNull String routeLongName) {
 		routeLongName = CleanUtils.SAINT.matcher(routeLongName).replaceAll(CleanUtils.SAINT_REPLACEMENT);
 		routeLongName = CleanUtils.CLEAN_PARENTHESIS1.matcher(routeLongName).replaceAll(CleanUtils.CLEAN_PARENTHESIS1_REPLACEMENT);
 		routeLongName = CleanUtils.CLEAN_PARENTHESIS2.matcher(routeLongName).replaceAll(CleanUtils.CLEAN_PARENTHESIS2_REPLACEMENT);
@@ -132,7 +88,21 @@ public class QuebecRTCBusAgencyTools extends DefaultAgencyTools {
 		return CleanUtils.cleanLabel(routeLongName);
 	}
 
-	private static final String AGENCY_COLOR = "A3C614";
+	@Override
+	public boolean defaultAgencyColorEnabled() {
+		return true;
+	}
+
+	// https://www.rtcquebec.ca/en/media/logos-and-photos
+	@SuppressWarnings("unused")
+	private static final String COLOR_GREEN_OFFICIAL_1 = "7DBA00"; // GREEN / PMS 376
+	@SuppressWarnings("unused")
+	private static final String COLOR_GREEN_OFFICIAL_2 = "A4C300"; // GREEN / RGB / RVB 164-195-0
+	@SuppressWarnings("unused")
+	private static final String COLOR_GREEN_OFFICIAL_3 = "8Cff00"; // GREEN / CMYK / CMJN 45-0-100-0
+
+	private static final String COLOR_GREEN = "A3C614";
+	private static final String AGENCY_COLOR = COLOR_GREEN;
 
 	@NotNull
 	@Override
@@ -164,11 +134,6 @@ public class QuebecRTCBusAgencyTools extends DefaultAgencyTools {
 	@Override
 	public boolean directionFinderEnabled() {
 		return true;
-	}
-
-	@Override
-	public boolean mergeHeadsign(@NotNull MTrip mTrip, @NotNull MTrip mTripToMerge) {
-		throw new MTLog.Fatal("Unexpected trips to merge %s & %s!", mTrip, mTripToMerge);
 	}
 
 	private static final Pattern ENDS_WITH_N_ = Pattern.compile("(^(.*)( \\(nord\\))$)", Pattern.CASE_INSENSITIVE);
