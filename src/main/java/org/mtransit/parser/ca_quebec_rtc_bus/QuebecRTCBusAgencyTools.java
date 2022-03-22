@@ -163,6 +163,11 @@ public class QuebecRTCBusAgencyTools extends DefaultAgencyTools {
 		return CleanUtils.cleanLabelFR(gStopName);
 	}
 
+	@Override
+	public int getStopId(@NotNull GStop gStop) {
+		return Integer.parseInt(gStop.getStopCode()); // using stop code as stop ID
+	}
+
 	@NotNull
 	@Override
 	public String getStopCode(@NotNull GStop gStop) { // USED BY RTC QUEBEC REAL-TIME API
