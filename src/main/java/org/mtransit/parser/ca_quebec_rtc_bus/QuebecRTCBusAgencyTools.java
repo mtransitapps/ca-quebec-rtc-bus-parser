@@ -1,5 +1,13 @@
 package org.mtransit.parser.ca_quebec_rtc_bus;
 
+import static org.mtransit.commons.Constants.EMPTY;
+import static org.mtransit.commons.RegexUtils.ANY;
+import static org.mtransit.commons.RegexUtils.BEGINNING;
+import static org.mtransit.commons.RegexUtils.END;
+import static org.mtransit.commons.RegexUtils.any;
+import static org.mtransit.commons.RegexUtils.group;
+import static org.mtransit.commons.RegexUtils.mGroup;
+
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.mtransit.commons.CleanUtils;
@@ -66,7 +74,6 @@ public class QuebecRTCBusAgencyTools extends DefaultAgencyTools {
 	}
 
 	private static final Pattern NULL = Pattern.compile("([\\- ]*null[ \\-]*)", Pattern.CASE_INSENSITIVE);
-	private static final String NULL_REPLACEMENT = "";
 
 	@Override
 	public boolean defaultRouteLongNameEnabled() {
@@ -84,7 +91,7 @@ public class QuebecRTCBusAgencyTools extends DefaultAgencyTools {
 		routeLongName = CleanUtils.SAINT.matcher(routeLongName).replaceAll(CleanUtils.SAINT_REPLACEMENT);
 		routeLongName = CleanUtils.CLEAN_PARENTHESIS1.matcher(routeLongName).replaceAll(CleanUtils.CLEAN_PARENTHESIS1_REPLACEMENT);
 		routeLongName = CleanUtils.CLEAN_PARENTHESIS2.matcher(routeLongName).replaceAll(CleanUtils.CLEAN_PARENTHESIS2_REPLACEMENT);
-		routeLongName = NULL.matcher(routeLongName).replaceAll(NULL_REPLACEMENT);
+		routeLongName = NULL.matcher(routeLongName).replaceAll(EMPTY);
 		return CleanUtils.cleanLabel(routeLongName);
 	}
 
@@ -114,13 +121,13 @@ public class QuebecRTCBusAgencyTools extends DefaultAgencyTools {
 	public void setTripHeadsign(@NotNull MRoute mRoute, @NotNull MTrip mTrip, @NotNull GTrip gTrip, @NotNull GSpec gtfs) { // DIRECTION ID USED BY REAL-TIME API
 		int directionId;
 		final String tripHeadsign1 = gTrip.getTripHeadsignOrDefault();
-		if (tripHeadsign1.endsWith(" (Nord)")) {
+		if (ENDS_WITH_N_.matcher(tripHeadsign1).find()) {
 			directionId = RTCQuebecProviderCommons.REAL_TIME_API_N; // DIRECTION ID USED BY REAL-TIME API
-		} else if (tripHeadsign1.endsWith(" (Sud)")) {
+		} else if (ENDS_WITH_S_.matcher(tripHeadsign1).find()) {
 			directionId = RTCQuebecProviderCommons.REAL_TIME_API_S; // DIRECTION ID USED BY REAL-TIME API
-		} else if (tripHeadsign1.endsWith(" (Est)")) {
+		} else if (ENDS_WITH_E_.matcher(tripHeadsign1).find()) {
 			directionId = RTCQuebecProviderCommons.REAL_TIME_API_E; // DIRECTION ID USED BY REAL-TIME API
-		} else if (tripHeadsign1.endsWith(" (Ouest)")) {
+		} else if (ENDS_WITH_O_.matcher(tripHeadsign1).find()) {
 			directionId = RTCQuebecProviderCommons.REAL_TIME_API_O; // DIRECTION ID USED BY REAL-TIME API
 		} else {
 			throw new MTLog.Fatal("Unexpected trip head-sign '%s'!", gTrip);
@@ -136,14 +143,22 @@ public class QuebecRTCBusAgencyTools extends DefaultAgencyTools {
 		return true;
 	}
 
-	private static final Pattern ENDS_WITH_N_ = Pattern.compile("(^(.*)( \\(nord\\))$)", Pattern.CASE_INSENSITIVE);
-	private static final String ENDS_WITH_N_REPLACEMENT = "N-$2";
-	private static final Pattern ENDS_WITH_S_ = Pattern.compile("(^(.*)( \\(sud\\))$)", Pattern.CASE_INSENSITIVE);
-	private static final String ENDS_WITH_S_REPLACEMENT = "S-$2";
-	private static final Pattern ENDS_WITH_E_ = Pattern.compile("(^(.*)( \\(est\\))$)", Pattern.CASE_INSENSITIVE);
-	private static final String ENDS_WITH_E_REPLACEMENT = "E-$2";
-	private static final Pattern ENDS_WITH_O_ = Pattern.compile("(^(.*)( \\(ouest\\))$)", Pattern.CASE_INSENSITIVE);
-	private static final String ENDS_WITH_O_REPLACEMENT = "O-$2";
+	private static final Pattern ENDS_WITH_N_ = Pattern.compile(group(
+			BEGINNING + group(any(ANY)) + group(" \\(" + "nord" + "\\)") + END
+	), Pattern.CASE_INSENSITIVE);
+	private static final String ENDS_WITH_N_REPLACEMENT = "N-" + mGroup(2);
+	private static final Pattern ENDS_WITH_S_ = Pattern.compile(group(
+			BEGINNING + group(any(ANY)) + group(" \\(" + "sud" + "\\)") + END
+	), Pattern.CASE_INSENSITIVE);
+	private static final String ENDS_WITH_S_REPLACEMENT = "S-" + mGroup(2);
+	private static final Pattern ENDS_WITH_E_ = Pattern.compile(group(
+			BEGINNING + group(any(ANY)) + group(" \\(" + "est" + "\\)") + END
+	), Pattern.CASE_INSENSITIVE);
+	private static final String ENDS_WITH_E_REPLACEMENT = "E-" + mGroup(2);
+	private static final Pattern ENDS_WITH_O_ = Pattern.compile(group(
+			BEGINNING + group(any(ANY)) + group(" \\(" + "ouest" + "\\)") + END
+	), Pattern.CASE_INSENSITIVE);
+	private static final String ENDS_WITH_O_REPLACEMENT = "O-" + mGroup(2);
 
 	@NotNull
 	@Override
